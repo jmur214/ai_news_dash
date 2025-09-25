@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.env
+venv/
+.DS_Store
+
+# Dash / Jupyter
+.ipynb_checkpoints/
