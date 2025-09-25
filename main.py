@@ -133,15 +133,21 @@ def fetch_feed(url):
         print(f"Error fetching {url}: {e}")
         return []
 
-def scrape_rss(feeds):
-    """Parallelized RSS scraping using threads."""
+def scrape_rss(feeds, max_per_feed=1):
+    """Parallelized RSS scraping using threads, limited to max_per_feed per feed."""
     articles = []
-    with ThreadPoolExecutor(max_workers=5) as executor:  # Adjust max_workers as desired
-        future_to_url = {executor.submit(fetch_feed, url): url for url in feeds}
+
+    def fetch_limited(url):
+        feed_articles = fetch_feed(url)
+        return feed_articles[:max_per_feed]  # take only first n articles
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        future_to_url = {executor.submit(fetch_limited, url): url for url in feeds}
         for future in as_completed(future_to_url):
             result = future.result()
             articles.extend(result)
-    print(f"Scraped {len(articles)} articles.")
+
+    print(f"Scraped {len(articles)} articles (max {max_per_feed} per feed).")
     return articles
 
 # --------------------------
@@ -257,8 +263,8 @@ def main():
     except FileNotFoundError:
         GEOCODE_CACHE = {}
 
-    # Scrape articles from RSS feeds
-    articles = scrape_rss(RSS_FEEDS)
+    # Scrape articles from RSS feeds, limit 1 article per feed to avoid API overuse
+    articles = scrape_rss(RSS_FEEDS, max_per_feed=1)
 
     # Get already processed links from the database
     existing_links = get_existing_links(DB_PATH)
